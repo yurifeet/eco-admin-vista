@@ -17,6 +17,7 @@ import {
   Warehouse,
   List,
   FileText,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -150,6 +151,18 @@ const DashboardSidebar = () => {
             to="/dashboard/bodegas/listar"
             icon={<List size={18} />}
             label="Listar Posiciones"
+            isCollapsed={isCollapsed}
+          />
+        </nav>
+      </div>
+
+      <div className="px-3 pt-4 pb-2">
+        {!isCollapsed && <div className="text-xs text-gray-500 mb-2">ADMINISTRAÇÃO</div>}
+        <nav className="space-y-1">
+          <SidebarLink
+            to="/dashboard/usuarios"
+            icon={<Users size={18} />}
+            label="Usuarios Registrados"
             isCollapsed={isCollapsed}
           />
         </nav>

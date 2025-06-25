@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import SalidaMercanciaForm from './pages/SalidaMercanciaForm';
 import ConfirmarTransferenciaSource from "./pages/transferenciaMercancia/sources/ConfirmarTransferenciaSources";
 import InventarioProductos from "./pages/inventario/InventarioProductos";
+import Usuarios from "./pages/Usuarios";
 
 
 const queryClient = new QueryClient();
@@ -81,6 +82,9 @@ const App = () => (
                 {/* Bodegas routes */}
                 <Route path="/dashboard/bodegas/listar" element={<ListarBodegas />} />
                 <Route path="/dashboard/bodegas/nova" element={<CriarBodega />} />
+                
+                {/* Usuarios routes */}
+                <Route path="/dashboard/usuarios" element={<Usuarios />} />
                 
                 {/* Legacy paths to maintain compatibility */}
                 <Route path="/ingreso-mercancia/nuevo" element={<Navigate to="/dashboard/ingreso-mercancia/nuevo" replace />} />

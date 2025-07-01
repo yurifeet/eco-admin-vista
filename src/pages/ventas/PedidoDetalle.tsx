@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
+import { translateOrderStatus } from "@/helpers/translateOrderStatus";
 
 interface StatusHistory {
   status?: string;
-  updated_at?: string;
+  created_at?: string;
+  comment?: string;
 }
 
 interface OrderDetail {
@@ -254,13 +256,28 @@ const PedidoDetalle = () => {
                     <TableRow>
                       <TableHead>Estado</TableHead>
                       <TableHead>Actualizado</TableHead>
+                      <TableHead>Comentario</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orderDetail.status_histories.map((history, index) => (
                       <TableRow key={index}>
-                        <TableCell>{history.status || "N/A"}</TableCell>
-                        <TableCell>{history.updated_at || "N/A"}</TableCell>
+                        <TableCell>{translateOrderStatus(history.status) || "N/A"}</TableCell>
+                        <TableCell>
+                          {history.created_at
+                            ? (() => {
+                                const date = new Date(history.created_at);
+                                const day = date.getDate().toString().padStart(2, "0");
+                                const month = (date.getMonth() + 1).toString().padStart(2, "0");
+                                const year = date.getFullYear();
+                                const hours = date.getHours().toString().padStart(2, "0");
+                                const minutes = date.getMinutes().toString().padStart(2, "0");
+                                const seconds = date.getSeconds().toString().padStart(2, "0");
+                                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+                              })()
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell>{history.comment || "N/A"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

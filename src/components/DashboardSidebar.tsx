@@ -18,6 +18,7 @@ import {
   List,
   FileText,
   Users,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +144,18 @@ const DashboardSidebar = () => {
           />
         </nav>
       </div>
+
+      <div className="px-3 pt-4 pb-2">
+      {!isCollapsed && <div className="text-xs text-gray-500 mb-2">VENTAS</div>}
+      <nav className="space-y-1">
+        <SidebarLink
+          to="/dashboard/ventas/pedidos"
+          icon={<ClipboardList size={18} />} // Actualizado el icono
+          label="Pedidos"
+          isCollapsed={isCollapsed}
+        />
+      </nav>
+    </div>
 
       <div className="px-3 pt-4 pb-2">
         {!isCollapsed && <div className="text-xs text-gray-500 mb-2">WMS</div>}

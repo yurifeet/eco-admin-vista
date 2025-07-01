@@ -35,6 +35,8 @@ import SalidaMercanciaForm from './pages/SalidaMercanciaForm';
 import ConfirmarTransferenciaSource from "./pages/transferenciaMercancia/sources/ConfirmarTransferenciaSources";
 import InventarioProductos from "./pages/inventario/InventarioProductos";
 import Usuarios from "./pages/Usuarios";
+import Pedidos from "./pages/ventas/Pedidos";
+import PedidoDetalle from "./pages/ventas/PedidoDetalle";
 
 
 const queryClient = new QueryClient();
@@ -85,7 +87,9 @@ const App = () => (
                 
                 {/* Usuarios routes */}
                 <Route path="/dashboard/usuarios" element={<Usuarios />} />
-                
+                {/* Ruta para el módulo Ventas con submódulo Pedidos */}
+                <Route path="/dashboard/ventas/pedidos" element={<Pedidos />} />    
+                <Route path="/dashboard/ventas/PedidoDetalle" element={<PedidoDetalle />} />            
                 {/* Legacy paths to maintain compatibility */}
                 <Route path="/ingreso-mercancia/nuevo" element={<Navigate to="/dashboard/ingreso-mercancia/nuevo" replace />} />
                 <Route path="/ingreso-mercancia/:id" element={<IngresoMercanciaRedirect />} />

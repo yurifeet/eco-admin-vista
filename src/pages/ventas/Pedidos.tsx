@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import * as XLSX from "xlsx";
 import { usePedidosVentasApi } from "@/hooks/usePedidosVentasApi";
 import { translateOrderStatus } from "@/helpers/translateOrderStatus";
@@ -129,7 +130,7 @@ const Pedidos = () => {
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Pedidos</h2>
+      <h2 className="text-xl font-semibold mb-1">Pedidos</h2>
       <p className="text-muted-foreground mb-4">
         Gestione los pedidos de ventas
       </p>
@@ -174,157 +175,170 @@ const Pedidos = () => {
           Reiniciar filtros
         </button>
       </div>
-
+  
       {isLoading ? (
         <div>Cargando pedidos...</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Número de pedido
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Punto de compra
-                </th>
-                <th
-                  style={colStyleFecha}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Fecha compra
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Cliente
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Estado
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Valor total
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Acciones
-                </th>
-                <th
-                  style={colStyle}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Exportar
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr key={order.entity_id}>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                    {order.increment_id}
-                  </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                    {order.store_name}
-                  </td>
-                  <td style={colStyleFecha} className="px-6 py-4 whitespace-nowrap">
-                  {(() => {
-                    const date = new Date(order.created_at);
-                    const day = date.getDate().toString().padStart(2, "0");
-                    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-                    const year = date.getFullYear();
-                    return `${day}/${month}/${year}`;
-                  })()}
-                </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                    {order.customer_firstname} {order.customer_lastname}
-                  </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                    {translateOrderStatus(order.status)}
-                  </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                  {"$ " + Number(order.grand_total).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() =>
-                        navigate("/dashboard/ventas/PedidoDetalle", {
-                          state: { orderId: order.entity_id },
-                        })
-                      }
-                      className="text-blue-600 hover:text-blue-900"
+        <Card>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  </td>
-                  <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`flex items-center gap-1 text-green-600 hover:text-green-800`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleExportOrder(order.entity_id);
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                      Número de pedido
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0-9l-3 3m3-3l3 3M12 3v9"
-                      />
-                    </svg>
-                  </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Paginación */}
-          <div className="mt-4 flex justify-center items-center gap-4">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
-            >
-              Anterior
-            </button>
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
+                      Fecha compra
+                    </th>
+                    <th
+                      style={colStyleFecha}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Cliente
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Punto de compra
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Estado
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Valor total
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Acciones
+                    </th>
+                    <th
+                      style={colStyle}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Exportar
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {orders.map((order) => (
+                    <tr key={order.entity_id}>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        {order.increment_id}
+                      </td>                     
+                      <td
+                        style={colStyleFecha}
+                        className="px-6 py-4 whitespace-nowrap"
+                      >
+                        {(() => {
+                          const date = new Date(order.created_at);
+                          const day = date.getDate().toString().padStart(2, "0");
+                          const month = (date.getMonth() + 1)
+                            .toString()
+                            .padStart(2, "0");
+                          const year = date.getFullYear();
+                          return `${day}/${month}/${year}`;
+                        })()}
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        {order.customer_firstname} {order.customer_lastname}
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        {order.store_name}
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        {translateOrderStatus(order.status)}
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        {"$ " +
+                          Number(order.grand_total).toLocaleString("es-CO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() =>
+                            navigate("/dashboard/ventas/PedidoDetalle", {
+                              state: { orderId: order.entity_id },
+                            })
+                          }
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1 text-green-600 hover:text-green-800"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExportOrder(order.entity_id);
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12v9m0-9l-3 3m3-3l3 3M12 3v9"
+                            />
+                          </svg>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+  
+              {/* Paginación */}
+              <div className="mt-4 flex justify-center items-center gap-4">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
+                >
+                  Anterior
+                </button>
+                <span>
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

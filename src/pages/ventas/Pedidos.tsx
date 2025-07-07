@@ -2,7 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import * as XLSX from "xlsx";
 import { usePedidosVentasApi } from "@/hooks/usePedidosVentasApi";
 import { translateOrderStatus } from "@/helpers/translateOrderStatus";
@@ -14,50 +27,51 @@ const Pedidos = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Estados para los filtros
+  // Estados para filtros
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
 
-  // Función para obtener pedidos
+  // Se solicita 10 registros por página
+  const pageSize = 10;
+
   const fetchOrders = async (page: number) => {
     setIsLoading(true);
-    const data = await getOrderList(page, 10, searchQuery, statusFilter);
+    const data = await getOrderList(page, pageSize, searchQuery, statusFilter);
     if (data) {
-      // Ordenamos los pedidos por número de pedido de forma descendente
       const sortedItems = data.items.sort((a: any, b: any) =>
         b.increment_id.localeCompare(a.increment_id)
       );
       setOrders(sortedItems);
       setTotalCount(data.total_count);
+      console.log("Total count:", data.total_count);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchOrders(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchQuery, statusFilter]);
 
-  // Reiniciamos la página cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
 
-  // Total de páginas (10 registros por página)
-  const totalPages = Math.ceil(totalCount / 10);
-  const colStyle = { width: "calc(100%/8)" }; // Se aumenta a 8 columnas
+  const totalPages = Math.ceil(totalCount / pageSize);
+  console.log("Total pages:", totalPages);
+
+  const colStyle = { width: "calc(100%/8)" };
   const colStyleFecha = { width: "10%" };
 
-  // Función para exportar datos de un pedido a Excel
   const handleExportOrder = async (orderId: number) => {
     const data = await getOrderDetail(orderId);
     if (!data) return;
-  
-    const billingSource = data.items && data.items.length > 0 ? data.items[0] : data;
-    const products = billingSource && billingSource.items ? billingSource.items : [];
-    
-    // Filtrar productos: por cada SKU se trae un único registro;
-    // si existen duplicados y uno tiene price 0, se reemplaza por el que tenga price !== 0.
+
+    const billingSource =
+      data.items && data.items.length > 0 ? data.items[0] : data;
+    const products =
+      billingSource && billingSource.items ? billingSource.items : [];
+
     const skuMap: { [sku: string]: any } = {};
     products.forEach((item: any) => {
       if (!item.sku) return;
@@ -74,8 +88,7 @@ const Pedidos = () => {
       }
     });
     const uniqueItems = Object.values(skuMap);
-  
-    // Preparar datos de Dirección de Facturación
+
     const billingData = [
       ["Calle", "Ciudad", "Código Postal", "País", "Teléfono"],
       [
@@ -85,47 +98,76 @@ const Pedidos = () => {
         billingSource.billing_address?.city || "N/A",
         billingSource.billing_address?.postcode || "N/A",
         billingSource.billing_address?.country_id || "N/A",
-        billingSource.billing_address?.telephone || "N/A"
-      ]
+        billingSource.billing_address?.telephone || "N/A",
+      ],
     ];
-  
-    // Preparar datos de Productos
+
     const productHeader = ["SKU", "Nombre", "Cantidad", "Precio"];
     const productData = uniqueItems.map((item: any) => [
       item.sku || "N/A",
       item.name || "N/A",
       item.qty_ordered || 0,
-      item.price !== undefined ? Number(item.price).toFixed(2) : "0.00"
+      item.price !== undefined ? Number(item.price).toFixed(2) : "0.00",
     ]);
-  
-    // Armar la hoja de Excel combinando ambas secciones
+
     const ws_data = [];
     ws_data.push(["Dirección de Facturación"]);
-    ws_data.push([]); // línea vacía para separación
+    ws_data.push([]);
     ws_data.push(...billingData);
-    ws_data.push([]); // separar secciones
+    ws_data.push([]);
     ws_data.push(["Productos"]);
     ws_data.push(productHeader);
     ws_data.push(...productData);
 
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  
+
     ws["!cols"] = [
       { wch: 20 },
       { wch: 20 },
       { wch: 20 },
       { wch: 20 },
-      { wch: 20 }
+      { wch: 20 },
     ];
-    
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte");
     XLSX.writeFile(wb, `Pedido_${orderId}.xlsx`);
   };
-  // Función para reiniciar filtros
+
   const resetFilters = () => {
     setSearchQuery("");
     setStatusFilter("Todos");
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Solo se mostrarán hasta 10 números de página en la paginación
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxPageLinks = 10;
+    let startPage = 1;
+    let endPage = totalPages;
+    if (totalPages > maxPageLinks) {
+      const half = Math.floor(maxPageLinks / 2);
+      startPage = Math.max(1, currentPage - half);
+      endPage = startPage + maxPageLinks - 1;
+      if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxPageLinks + 1);
+      }
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink onClick={() => handlePageChange(i)} active={i === currentPage}>
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    return items;
   };
 
   return (
@@ -175,7 +217,7 @@ const Pedidos = () => {
           Reiniciar filtros
         </button>
       </div>
-  
+
       {isLoading ? (
         <div>Cargando pedidos...</div>
       ) : (
@@ -185,52 +227,28 @@ const Pedidos = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Número de pedido
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha compra
                     </th>
-                    <th
-                      style={colStyleFecha}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyleFecha} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cliente
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Punto de compra
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Valor total
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
                     </th>
-                    <th
-                      style={colStyle}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Exportar
                     </th>
                   </tr>
@@ -240,17 +258,12 @@ const Pedidos = () => {
                     <tr key={order.entity_id}>
                       <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
                         {order.increment_id}
-                      </td>                     
-                      <td
-                        style={colStyleFecha}
-                        className="px-6 py-4 whitespace-nowrap"
-                      >
+                      </td>
+                      <td style={colStyleFecha} className="px-6 py-4 whitespace-nowrap">
                         {(() => {
                           const date = new Date(order.created_at);
                           const day = date.getDate().toString().padStart(2, "0");
-                          const month = (date.getMonth() + 1)
-                            .toString()
-                            .padStart(2, "0");
+                          const month = (date.getMonth() + 1).toString().padStart(2, "0");
                           const year = date.getFullYear();
                           return `${day}/${month}/${year}`;
                         })()}
@@ -314,27 +327,24 @@ const Pedidos = () => {
                 </tbody>
               </table>
   
-              {/* Paginación */}
-              <div className="mt-4 flex justify-center items-center gap-4">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
-                >
-                  Anterior
-                </button>
-                <span>
-                  Página {currentPage} de {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
-                >
-                  Siguiente
-                </button>
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    {renderPaginationItems()}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             </div>
           </CardContent>

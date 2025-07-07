@@ -5,8 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export const usePedidosVentasApi = () => {
   const { toast } = useToast();
   const { token } = useAuth();  
-  const BASE_URL = `https://app.projectfeet.test/rest/V1/orders`;
-  //const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rest/V1/orders`;
+  const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rest/V1/orders`;
   
   const getOrderList = async (
     currentPage: number = 1,

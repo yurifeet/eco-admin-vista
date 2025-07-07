@@ -6,6 +6,40 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 import { translateOrderStatus } from "@/helpers/translateOrderStatus";
+import { toast } from "sonner";
+
+// Función de confirmación usando toast.custom
+const confirmAction = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    toast.custom(
+      (toastId) => (
+        <div className="flex flex-col items-center gap-4 p-4 bg-white shadow rounded">
+          <span>Esta seguro que desea cancelar el pedido?</span>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                toast.dismiss(toastId);
+                resolve(true);
+              }}
+            >
+              Confirmar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                toast.dismiss(toastId);
+                resolve(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity }
+    );
+  });
+};
 
 interface StatusHistory {
   status?: string;
@@ -14,13 +48,14 @@ interface StatusHistory {
 }
 
 interface OrderDetail {
-    subtotal?: number;
-    shipping_amount?: number;   
-    tax_amount?: number;
-    grand_total?: number;   
-    total_paid?: number;
-    total_refunded?: number;
-    total_due?: number;
+  status?: string;
+  subtotal?: number;
+  shipping_amount?: number;   
+  tax_amount?: number;
+  grand_total?: number;   
+  total_paid?: number;
+  total_refunded?: number;
+  total_due?: number;
   billing_address: {
     street?: string;
     city?: string;
@@ -58,7 +93,7 @@ const PedidoDetalle = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderId } = location.state || {};
-  const { getOrderDetail } = usePedidosVentasApi();
+  const { getOrderDetail, cancelOrder } = usePedidosVentasApi();
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -86,7 +121,6 @@ const PedidoDetalle = () => {
   }, [orderId]);
 
   // Filtrar productos para que por cada SKU solo aparezca uno.
-  // Si existen duplicados, se selecciona el que tenga price !== 0.
   const uniqueItems = useMemo(() => {
     if (!orderDetail || !orderDetail.items) return [];
     const acc: { [sku: string]: any } = {};
@@ -136,13 +170,12 @@ const PedidoDetalle = () => {
     ws_data.push(["Dirección de Facturación"]);
     ws_data.push([]); // Línea vacía para separador
     ws_data.push(...billingData);
-    ws_data.push([]); // Separar secciones
+    ws_data.push([]);
     ws_data.push(["Productos"]);
     ws_data.push(productHeader);
     ws_data.push(...productData);
   
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    
     ws["!cols"] = [
       { wch: 30 },
       { wch: 20 },
@@ -154,6 +187,18 @@ const PedidoDetalle = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte");
     XLSX.writeFile(wb, `Pedido_${orderId}.xlsx`);
+  };
+  
+  const handleCancelOrder = async () => {
+    const confirmed = await confirmAction();
+    if (!confirmed) return; // Cierra el modal si no confirma.
+    const result = await cancelOrder(orderId);
+    if (result?.success === true) {
+      toast.success("Pedido cancelado exitosamente.");
+      setOrderDetail(prev => prev ? { ...prev, status: "canceled" } : prev);
+    } else {
+      toast.error("Error al cancelar el pedido.");
+    }
   };
 
   if (loading) {
@@ -168,17 +213,19 @@ const PedidoDetalle = () => {
     <div className="p-4 space-y-6">
       {/* Botones de acción en la parte superior derecha */}
       <div className="flex justify-end gap-2">
-      <Button
-        onClick={() => navigate("/dashboard/ventas/pedidos")}
-        className="bg-transparent hover:bg-transparent text-gray-800 border border-gray-300"
+        <Button
+          onClick={() => navigate("/dashboard/ventas/pedidos")}
+          className="bg-transparent hover:bg-transparent text-gray-800 border border-gray-300"
         >
-        Regresar
+          Regresar
         </Button>
-        <Button onClick={handleExportExcel}>
-          Exportar
-        </Button>
+        <Button onClick={handleExportExcel}>Exportar</Button>
+        { !["canceled", "complete", "closed"].includes(orderDetail.status || "") && (
+          <Button variant="destructive" onClick={handleCancelOrder}>
+            Cancelar Pedido
+          </Button>
+        )}
       </div>
-
       {/* Grid: Dirección de Facturación e Información de la cuenta */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
@@ -313,10 +360,10 @@ const PedidoDetalle = () => {
                     <TableCell>{item.name || "N/A"}</TableCell>
                     <TableCell>{item.qty_ordered || 0}</TableCell>
                     <TableCell>
-                    {"$ " +
+                      {"$ " +
                         Number(item.price).toLocaleString("es-CO", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
                         })}
                     </TableCell>
                   </TableRow>
@@ -334,89 +381,89 @@ const PedidoDetalle = () => {
       </Card>
 
       {/* Card para Totales del pedido con estilo mejorado */}
-    <div className="flex justify-end">
-    <Card className="w-full md:w-1/3">
-        <CardHeader>
-        <CardTitle>Totales del pedido</CardTitle>
-        </CardHeader>
-        <CardContent>
-        <div className="space-y-2">
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">Total parcial:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.subtotal || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
+      <div className="flex justify-end">
+        <Card className="w-full md:w-1/3">
+          <CardHeader>
+            <CardTitle>Totales del pedido</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">Total parcial:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.subtotal || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">
+                  Cargos por manejo y envío:
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.shipping_amount || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">Impuesto:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.tax_amount || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">Gran total:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.grand_total || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">Total pagado:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.total_paid || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="font-medium">Total reembolsado:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.total_refunded || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Total debido:</span>
+                <span className="font-semibold text-gray-800">
+                  {"$ " +
+                    Number(orderDetail.total_due || 0).toLocaleString("es-CO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">
-                Cargos por manejo y envío:
-            </span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.shipping_amount || 0).toLocaleString(
-                    "es-CO",
-                    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                )}
-            </span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">Impuesto:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.tax_amount || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">Gran total:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.grand_total || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">Total pagado:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.total_paid || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
-            </div>
-            <div className="flex justify-between border-b pb-1">
-            <span className="font-medium">Total reembolsado:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.total_refunded || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
-            </div>
-            <div className="flex justify-between">
-            <span className="font-medium">Total debido:</span>
-            <span className="font-semibold text-gray-800">
-                {"$ " +
-                Number(orderDetail.total_due || 0).toLocaleString("es-CO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                })}
-            </span>
-            </div>
-        </div>
-        </CardContent>
-    </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export const usePedidosVentasApi = () => {
   const { toast } = useToast();
   const { token } = useAuth();  
-  const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rest/V1/orders`;
+  const BASE_URL = `https://app.projectfeet.test/rest/V1/orders`;
+  //const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/rest/V1/orders`;
   
   const getOrderList = async (
     currentPage: number = 1,
@@ -102,9 +103,49 @@ export const usePedidosVentasApi = () => {
         return null;
       }
     };
-  
+
+    const cancelOrder = async (orderId: number | string) => {
+      try {
+        const endpoint = `${BASE_URL}/${orderId}/cancel`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status === 401) {
+          throw new Error('401: Token no válido o expirado');
+        }
+        
+        if (response.status === 400) {
+          const errorData = await response.json();
+          throw new Error(`400: ${errorData.detail || 'Parámetros inválidos'}`);
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        if (response.status === 200) {
+          return { success: true, message: "orden cancelada", error: "" };
+        }
+        
+        // En caso de que se requiera el procesamiento de otro status, se puede ajustar aquí.
+        return await response.json();
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo cancelar el pedido.",
+          variant: 'destructive'
+        });
+        return null;
+      }
+    };
     return {
       getOrderList,
-      getOrderDetail
+      getOrderDetail,
+      cancelOrder
     };
 };

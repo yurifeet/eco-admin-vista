@@ -37,6 +37,8 @@ import InventarioProductos from "./pages/inventario/InventarioProductos";
 import Usuarios from "./pages/Usuarios";
 import Pedidos from "./pages/ventas/Pedidos";
 import PedidoDetalle from "./pages/ventas/PedidoDetalle";
+import PedidoEnvio from "./pages/ventas/PedidoEnvio";
+import Enviados from "./pages/ventas/Enviados";
 
 
 const queryClient = new QueryClient();
@@ -89,7 +91,9 @@ const App = () => (
                 <Route path="/dashboard/usuarios" element={<Usuarios />} />
                 {/* Ruta para el módulo Ventas con submódulo Pedidos */}
                 <Route path="/dashboard/ventas/pedidos" element={<Pedidos />} />    
-                <Route path="/dashboard/ventas/PedidoDetalle" element={<PedidoDetalle />} />            
+                <Route path="/dashboard/ventas/PedidoDetalle" element={<PedidoDetalle />} />
+                <Route path="/dashboard/ventas/PedidoEnvio" element={<PedidoEnvio />} /> 
+                <Route path="/dashboard/ventas/enviados" element={<Enviados />} />              
                 {/* Legacy paths to maintain compatibility */}
                 <Route path="/ingreso-mercancia/nuevo" element={<Navigate to="/dashboard/ingreso-mercancia/nuevo" replace />} />
                 <Route path="/ingreso-mercancia/:id" element={<IngresoMercanciaRedirect />} />

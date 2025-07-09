@@ -8,7 +8,6 @@ import * as XLSX from "xlsx";
 import { translateOrderStatus } from "@/helpers/translateOrderStatus";
 import { toast } from "sonner";
 
-// Función de confirmación usando toast.custom
 const confirmAction = (): Promise<boolean> => {
   return new Promise((resolve) => {
     toast.custom(
@@ -87,7 +86,21 @@ interface OrderDetail {
     discount_amount?: number;
   }>;
   status_histories?: StatusHistory[];
+  // Campos adicionales
+  increment_id?: string;
+  store_name?: string;
+  created_at?: string;
 }
+
+const formatDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear().toString();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
+};
 
 const PedidoDetalle = () => {
   const location = useLocation();
@@ -99,10 +112,7 @@ const PedidoDetalle = () => {
 
   useEffect(() => {
     const fetchDetail = async () => {
-      console.log("orderId:", orderId);
-      const data = await getOrderDetail(orderId);
-      console.log("Respuesta del endpoint:", data);
-  
+      const data = await getOrderDetail(orderId);  
       if (data) {
         if (Array.isArray(data.items) && data.items.length > 0) {
           setOrderDetail(data.items[0]);
@@ -219,12 +229,48 @@ const PedidoDetalle = () => {
         >
           Regresar
         </Button>
-        <Button onClick={handleExportExcel}>Exportar</Button>
         { !["canceled", "complete", "closed"].includes(orderDetail.status || "") && (
           <Button variant="destructive" onClick={handleCancelOrder}>
             Cancelar Pedido
           </Button>
         )}
+        <Button onClick={handleExportExcel}>Exportar</Button>        
+      </div>
+
+      {/* Sección con Pedido Número, Origen, Fecha y Estado */}
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Pedido Número:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.increment_id || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Origen:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.store_name || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Fecha:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.created_at ? formatDate(orderDetail.created_at) : "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Estado:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {translateOrderStatus(orderDetail.status) || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
       </div>
       {/* Grid: Dirección de Facturación e Información de la cuenta */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -380,7 +426,7 @@ const PedidoDetalle = () => {
         </CardContent>
       </Card>
 
-      {/* Card para Totales del pedido con estilo mejorado */}
+      {/* Card para Totales del pedido */}
       <div className="flex justify-end">
         <Card className="w-full md:w-1/3">
           <CardHeader>
@@ -399,9 +445,7 @@ const PedidoDetalle = () => {
                 </span>
               </div>
               <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">
-                  Cargos por manejo y envío:
-                </span>
+                <span className="font-medium">Cargos por manejo y envío:</span>
                 <span className="font-semibold text-gray-800">
                   {"$ " +
                     Number(orderDetail.shipping_amount || 0).toLocaleString("es-CO", {

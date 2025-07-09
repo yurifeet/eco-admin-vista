@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye } from "lucide-react";
+import { Eye,Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +43,6 @@ const Pedidos = () => {
       );
       setOrders(sortedItems);
       setTotalCount(data.total_count);
-      console.log("Total count:", data.total_count);
     }
     setIsLoading(false);
   };
@@ -58,7 +57,6 @@ const Pedidos = () => {
   }, [searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
-  console.log("Total pages:", totalPages);
 
   const colStyle = { width: "calc(100%/8)" };
   const colStyleFecha = { width: "10%" };
@@ -284,18 +282,30 @@ const Pedidos = () => {
                             maximumFractionDigits: 2,
                           })}
                       </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() =>
-                            navigate("/dashboard/ventas/PedidoDetalle", {
-                              state: { orderId: order.entity_id },
-                            })
-                          }
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </td>
+                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          navigate("/dashboard/ventas/PedidoDetalle", {
+                            state: { orderId: order.entity_id },
+                          })
+                        }
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Ver pedido"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigate("/dashboard/ventas/PedidoEnvio", {
+                            state: { orderId: order.entity_id },
+                          })
+                        }
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Enviar pedido"
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
+                    </td>
                       <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
                         <Button
                           variant="outline"

@@ -123,7 +123,7 @@ const Enviados = () => {
                           <button
                             onClick={() =>
                               navigate("/dashboard/ventas/PedidoEnvio", {
-                                state: { orderId: shipment.entity_id },
+                                state: { orderId: shipment.order_id },
                               })
                             }
                             className="text-blue-600 hover:text-blue-900"

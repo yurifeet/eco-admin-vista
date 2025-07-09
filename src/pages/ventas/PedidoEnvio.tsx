@@ -310,7 +310,7 @@ const PedidoEnvio = () => {
       {/* Botones de acción */}
       <div className="flex justify-end gap-2">
         <Button
-          onClick={() => navigate("/dashboard/ventas/pedidos")}
+          onClick={() => navigate("/dashboard/ventas/enviados")}
           className="bg-transparent hover:bg-transparent text-gray-800 border border-gray-300"
         >
           Regresar

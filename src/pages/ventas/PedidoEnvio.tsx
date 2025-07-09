@@ -51,7 +51,7 @@ interface OrderDetail {
     additional_information?: Array<string>;
   };
   items: Array<{
-    item_id?: number; // se asume que este campo existe
+    item_id?: number;
     sku?: string;
     name?: string;
     qty_ordered?: number;
@@ -76,16 +76,12 @@ const PedidoEnvio = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderId } = location.state || {};
-  // Incluimos los métodos getOrderDetail, sendOrder y detailSaleOrderByIdOrder
   const { getOrderDetail, sendOrder, detailSaleOrderByIdOrder } = usePedidosVentasApi();
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  // Estado para los códigos de seguimiento (manual y provenientes de la API)
   const [trackingCodes, setTrackingCodes] = useState<TrackingCode[]>([]);
-  // Estados para Comentarios de envío (input para nuevos comentarios)
   const [envioComment, setEnvioComment] = useState("");
   const [appendComment, setAppendComment] = useState(false);
-  // Estado para el detalle del envío proveniente de detailSaleOrderByIdOrder
   const [shipmentDetail, setShipmentDetail] = useState<any>(null);
 
   const confirmSendOrder = (): Promise<boolean> => {
@@ -139,19 +135,17 @@ const PedidoEnvio = () => {
     }
   }, [orderId]);
 
-  // Una vez obtenido orderDetail, consultamos el detalle del envío mediante detailSaleOrderByIdOrder
+  // Una vez obtenido orderDetail, consultamos el detalle del envío
   useEffect(() => {
     const fetchShipmentDetail = async () => {
       if (orderDetail && orderDetail.entity_id) {
         const shipmentData = await detailSaleOrderByIdOrder(orderDetail.entity_id);
-        // Si la respuesta tiene items, tomamos el primer item
         if (shipmentData && shipmentData.items && shipmentData.items.length > 0) {
           setShipmentDetail(shipmentData.items[0]);
-          // Si hay tracks en la respuesta, pre-populamos el estado trackingCodes
           if (shipmentData.items[0].tracks && shipmentData.items[0].tracks.length > 0) {
             const apiTracks: TrackingCode[] = shipmentData.items[0].tracks.map((track: any) => ({
               id: track.entity_id,
-              nombre: track.carrier_code, // Valor para el select (se mostrará con el título correspondiente)
+              nombre: track.carrier_code,
               titulo: track.title,
               numero: track.track_number
             }));
@@ -165,23 +159,8 @@ const PedidoEnvio = () => {
     }
   }, [orderDetail]);
 
-  // Filtrar productos para que aparezca solo uno por SKU.
-  const uniqueItems = useMemo(() => {
-    if (!orderDetail || !orderDetail.items) return [];
-    const acc: Record<string, any> = {};
-    orderDetail.items.forEach((item) => {
-      const sku = item.sku;
-      if (!sku) return;
-      if (!acc[sku]) {
-        acc[sku] = item;
-      } else {
-        if ((!acc[sku].price || acc[sku].price === 0) && item.price && item.price !== 0) {
-          acc[sku] = item;
-        }
-      }
-    });
-    return Object.values(acc);
-  }, [orderDetail]);
+  // Usamos los productos del envío para actualizar los valores de productos
+  const shipmentItems = shipmentDetail?.items || [];
 
   const handleExportExcel = () => {
     if (!orderDetail) return;
@@ -197,8 +176,8 @@ const PedidoEnvio = () => {
     ];
     const productHeader = ["SKU", "Nombre", "Cantidad", "Precio"];
     const productData =
-      uniqueItems && uniqueItems.length > 0
-        ? uniqueItems.map((item) => [
+      shipmentItems && shipmentItems.length > 0
+        ? shipmentItems.map((item: any) => [
             item.sku || "N/A",
             item.name || "N/A",
             item.qty_ordered || 0,
@@ -236,9 +215,7 @@ const PedidoEnvio = () => {
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
-  // Función para enviar el pedido
   const handleSendOrder = async () => {
-    // Solicita confirmación antes de enviar
     const confirmed = await confirmSendOrder();
     if (!confirmed) return;
   
@@ -261,7 +238,6 @@ const PedidoEnvio = () => {
       }))
     };
   
-    // Solo agregar 'comment' en el payload si no está vacío
     if (appendComment && envioComment.trim().length > 0) {
       payload.comment = [{ comment: envioComment }];
     }
@@ -270,7 +246,6 @@ const PedidoEnvio = () => {
     if (result?.success) {
       toast.success(result.message || "El pedido ha sido enviado correctamente.");
       
-      // Reconsultar getOrderDetail para actualizar orderDetail
       const updatedData = await getOrderDetail(orderId);
       if (updatedData) {
         if (Array.isArray(updatedData.items) && updatedData.items.length > 0) {
@@ -280,23 +255,17 @@ const PedidoEnvio = () => {
         }
       }
       
-      // Reconsultamos el detalle del envío para actualizar la información de Transportista
       if (orderDetail && orderDetail.entity_id) {
         const shipmentData = await detailSaleOrderByIdOrder(orderDetail.entity_id);
         if (shipmentData && shipmentData.items && shipmentData.items.length > 0) {
           setShipmentDetail(shipmentData.items[0]);
-          if (
-            shipmentData.items[0].tracks &&
-            shipmentData.items[0].tracks.length > 0
-          ) {
-            const apiTracks: TrackingCode[] = shipmentData.items[0].tracks.map(
-              (track: any) => ({
-                id: track.entity_id,
-                nombre: track.carrier_code,
-                titulo: track.title,
-                numero: track.track_number
-              })
-            );
+          if (shipmentData.items[0].tracks && shipmentData.items[0].tracks.length > 0) {
+            const apiTracks: TrackingCode[] = shipmentData.items[0].tracks.map((track: any) => ({
+              id: track.entity_id,
+              nombre: track.carrier_code,
+              titulo: track.title,
+              numero: track.track_number
+            }));
             setTrackingCodes(apiTracks);
           }
         }
@@ -305,7 +274,7 @@ const PedidoEnvio = () => {
       toast.error("Error al enviar el pedido.");
     }
   };
-  // Funciones para códigos de seguimiento (funcionalidad para agregar/eliminar se mantiene)
+
   const handleAddTrackingCode = () => {
     const newCode: TrackingCode = {
       id: Date.now(),
@@ -320,11 +289,7 @@ const PedidoEnvio = () => {
     setTrackingCodes(trackingCodes.filter((code) => code.id !== id));
   };
 
-  const handleTrackingCodeChange = (
-    id: number,
-    field: keyof TrackingCode,
-    value: string
-  ) => {
+  const handleTrackingCodeChange = (id: number, field: keyof TrackingCode, value: string) => {
     setTrackingCodes(
       trackingCodes.map((code) =>
         code.id === id ? { ...code, [field]: value } : code
@@ -350,7 +315,7 @@ const PedidoEnvio = () => {
         >
           Regresar
         </Button>
-        { !["processing", "canceled", "closed", "holded","complete"].includes(orderDetail.status || "") && (
+        { !["processing", "canceled", "closed", "holded", "complete"].includes(orderDetail.status || "") && (
           <Button
             variant="primary"
             onClick={handleSendOrder}
@@ -361,41 +326,41 @@ const PedidoEnvio = () => {
         )}
         <Button onClick={handleExportExcel}>Exportar</Button>
       </div>
-     {/* Sección con Pedido Número, Origen, Fecha y Estado */}
-          <div className="mb-6 flex flex-col md:flex-row gap-4">
-            <Card className="w-full md:w-1/4">
-              <CardContent className="flex flex-col items-center">
-                <span className="text-lg text-blue-600">Pedido Número:</span>
-                <span className="text-xl font-bold text-gray-800">
-                  {orderDetail.increment_id || "N/A"}
-                </span>
-              </CardContent>
-            </Card>
-            <Card className="w-full md:w-1/4">
-              <CardContent className="flex flex-col items-center">
-                <span className="text-lg text-blue-600">Origen:</span>
-                <span className="text-xl font-bold text-gray-800">
-                  {orderDetail.store_name || "N/A"}
-                </span>
-              </CardContent>
-            </Card>
-            <Card className="w-full md:w-1/4">
-              <CardContent className="flex flex-col items-center">
-                <span className="text-lg text-blue-600">Fecha:</span>
-                <span className="text-xl font-bold text-gray-800">
-                  {orderDetail.created_at ? formatDate(orderDetail.created_at) : "N/A"}
-                </span>
-              </CardContent>
-            </Card>
-            <Card className="w-full md:w-1/4">
-              <CardContent className="flex flex-col items-center">
-                <span className="text-lg text-blue-600">Estado:</span>
-                <span className="text-xl font-bold text-gray-800">
-                  {translateOrderStatus(orderDetail.status) || "N/A"}
-                </span>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Sección con Pedido Número, Origen, Fecha y Estado */}
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Pedido Número:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.increment_id || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Origen:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.store_name || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Fecha:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {orderDetail.created_at ? formatDate(orderDetail.created_at) : "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="w-full md:w-1/4">
+          <CardContent className="flex flex-col items-center">
+            <span className="text-lg text-blue-600">Estado:</span>
+            <span className="text-xl font-bold text-gray-800">
+              {translateOrderStatus(orderDetail.status) || "N/A"}
+            </span>
+          </CardContent>
+        </Card>
+      </div>
       {/* Cards con la información */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
@@ -423,7 +388,6 @@ const PedidoEnvio = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Información de la Cuenta</CardTitle>
@@ -440,7 +404,6 @@ const PedidoEnvio = () => {
           </CardContent>
         </Card>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -459,83 +422,78 @@ const PedidoEnvio = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Card Transportista: Se muestran los códigos de seguimiento provenientes de la API (si existen)
-            además de la funcionalidad de agregar/eliminar */}
-       <Card>
-        <CardHeader>
+        <Card>
+          <CardHeader>
             <CardTitle>Transportista</CardTitle>
-        </CardHeader>
-        <CardContent>
+          </CardHeader>
+          <CardContent>
             <Button onClick={handleAddTrackingCode} className="mb-4">
-            Agregar código seguimiento
+              Agregar código seguimiento
             </Button>
             <div className="overflow-x-auto">
-            <Table>
+              <Table>
                 <TableHeader>
-                <TableRow>
+                  <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Título</TableHead>
                     <TableHead>Número</TableHead>
-                </TableRow>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                {trackingCodes.map((code) => (
+                  {trackingCodes.map((code) => (
                     <TableRow key={code.id}>
-                    <TableCell>
+                      <TableCell>
                         <select
-                        value={code.nombre}
-                        onChange={(e) =>
+                          value={code.nombre}
+                          onChange={(e) =>
                             handleTrackingCodeChange(code.id, "nombre", e.target.value)
-                        }
-                        className="border rounded p-1"
+                          }
+                          className="border rounded p-1"
                         >
-                        <option value="">Seleccione</option>
-                        <option value="flatrate">Tarifa plana</option>
-                        <option value="freeshipping">Envío gratuito</option>
-                        <option value="tablerate">Tarifa por tabla</option>
-                        <option value="ups">UPS</option>
-                        <option value="usps">USPS</option>
-                        <option value="fedex">FedEx</option>
-                        <option value="dhl">DHL</option>
+                          <option value="">Seleccione</option>
+                          <option value="flatrate">Tarifa plana</option>
+                          <option value="freeshipping">Envío gratuito</option>
+                          <option value="tablerate">Tarifa por tabla</option>
+                          <option value="ups">UPS</option>
+                          <option value="usps">USPS</option>
+                          <option value="fedex">FedEx</option>
+                          <option value="dhl">DHL</option>
                         </select>
-                    </TableCell>
-                    <TableCell>
+                      </TableCell>
+                      <TableCell>
                         <input
-                        type="text"
-                        value={code.titulo}
-                        onChange={(e) =>
+                          type="text"
+                          value={code.titulo}
+                          onChange={(e) =>
                             handleTrackingCodeChange(code.id, "titulo", e.target.value)
-                        }
-                        className="border rounded p-1"
+                          }
+                          className="border rounded p-1"
                         />
-                    </TableCell>
-                    <TableCell>
+                      </TableCell>
+                      <TableCell>
                         <input
-                        type="text"
-                        value={code.numero}
-                        onChange={(e) =>
+                          type="text"
+                          value={code.numero}
+                          onChange={(e) =>
                             handleTrackingCodeChange(code.id, "numero", e.target.value)
-                        }
-                        className="border rounded p-1"
+                          }
+                          className="border rounded p-1"
                         />
-                    </TableCell>
+                      </TableCell>
                     </TableRow>
-                ))}
-                {trackingCodes.length === 0 && (
+                  ))}
+                  {trackingCodes.length === 0 && (
                     <TableRow>
-                    <TableCell colSpan={3} className="text-center">
+                      <TableCell colSpan={3} className="text-center">
                         No hay códigos de seguimiento
-                    </TableCell>
+                      </TableCell>
                     </TableRow>
-                )}
+                  )}
                 </TableBody>
-            </Table>
+              </Table>
             </div>
-        </CardContent>
+          </CardContent>
         </Card>
-
-        {/* Card Comentarios de envío: Se muestra el input para agregar comentario y, si shipmentDetail tiene comments, se listan a continuación */}
         <Card>
           <CardHeader>
             <CardTitle>Comentarios de envío</CardTitle>
@@ -578,7 +536,7 @@ const PedidoEnvio = () => {
           </CardContent>
         </Card>
       </div>
-
+      {/* Productos: ahora se utiliza el arreglo de items obtenido de shipmentDetail */}
       <Card>
         <CardHeader>
           <CardTitle>Productos</CardTitle>
@@ -594,12 +552,12 @@ const PedidoEnvio = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {uniqueItems && uniqueItems.length > 0 ? (
-                uniqueItems.map((item, index) => (
-                  <TableRow key={index}>
+              {shipmentItems && shipmentItems.length > 0 ? (
+                shipmentItems.map((item: any, index: number) => (
+                  <TableRow key={item.item_id || index}>
                     <TableCell>{item.sku || "N/A"}</TableCell>
                     <TableCell>{item.name || "N/A"}</TableCell>
-                    <TableCell>{item.qty_ordered || 0}</TableCell>
+                    <TableCell>{item.qty || 0}</TableCell>
                     <TableCell>
                       {"$ " +
                         Number(item.price).toLocaleString("es-CO", {
@@ -620,7 +578,6 @@ const PedidoEnvio = () => {
           </Table>
         </CardContent>
       </Card>
-
       <div className="flex justify-end">
         <Card className="w-full md:w-1/3">
           <CardHeader>
@@ -638,67 +595,7 @@ const PedidoEnvio = () => {
                     })}
                 </span>
               </div>
-              <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">Cargos por manejo y envío:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.shipping_amount || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
               </div>
-              <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">Impuesto:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.tax_amount || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">Gran total:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.grand_total || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">Total pagado:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.total_paid || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-1">
-                <span className="font-medium">Total reembolsado:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.total_refunded || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Total debido:</span>
-                <span className="font-semibold text-gray-800">
-                  {"$ " +
-                    Number(orderDetail.total_due || 0).toLocaleString("es-CO", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                </span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

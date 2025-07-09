@@ -295,12 +295,21 @@ const Pedidos = () => {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
+                        disabled={
+                          ["closed", "canceled", "holded"].includes(
+                            order.status.toLowerCase()
+                          )
+                        }
                         onClick={() =>
                           navigate("/dashboard/ventas/PedidoEnvio", {
                             state: { orderId: order.entity_id },
                           })
                         }
-                        className="text-blue-600 hover:text-blue-900"
+                        className={`text-blue-600 hover:text-blue-900 ${
+                          ["closed", "canceled", "holded"].includes(order.status.toLowerCase())
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
                         title="Enviar pedido"
                       >
                         <Send className="h-4 w-4" />

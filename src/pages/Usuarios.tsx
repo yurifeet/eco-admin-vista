@@ -132,7 +132,7 @@ const Usuarios = () => {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>

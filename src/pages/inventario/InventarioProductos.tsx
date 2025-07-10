@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { FileX, File as FileIcon, FileText } from 'lucide-react';
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import inventarioProductosApi, { UrlImagen } from '../../components/inventario/inventarioProductosApi';
 import { useIngresoMercanciaApi } from '../../hooks/useIngresoMercanciaApi';
 import { getBase64FromUrl } from '../../utils/getBase64FromUrl';
@@ -25,14 +30,14 @@ interface Source {
 }
 
 const typeOptions = [
-  { label: 'Todos', value: '' },
+  { label: 'Todos', value: 'all' },
   { label: 'Femenino', value: 'F' },
   { label: 'Masculino', value: 'M' },
   { label: 'Infantil', value: 'I' },
 ];
 
 const brandOptions = [
-  { label: 'Todos', value: '' },
+  { label: 'Todos', value: 'all' },
   { label: 'Actvitta', value: '125' },
   { label: 'Beira Rio', value: '126' },
   { label: 'Modare', value: '127' },
@@ -84,7 +89,8 @@ const MyPdfDocument = ({ prodData, allowedSizes }: { prodData: ProductItem[]; al
     title: { fontSize: 18, textAlign: 'center' },
     logo: { width: 50, height: 50 },
     table: {
-      display: 'table',
+      display: 'flex',
+      flexDirection: 'column',
       width: 'auto',
       borderStyle: 'solid',
       borderWidth: 1,
@@ -156,8 +162,8 @@ const InventarioProductos = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [selectedSource, setSelectedSource] = useState<string>('default');
-  const [selectedType, setSelectedType] = useState<string>('');
-  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [sourceName, setSourceName] = useState<string>('');
@@ -190,7 +196,9 @@ const InventarioProductos = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const result = await inventarioProductosApi.getCustomProducts(selectedType, selectedBrand, selectedSource);
+        const typeParam = selectedType === 'all' ? '' : selectedType;
+        const brandParam = selectedBrand === 'all' ? '' : selectedBrand;
+        const result = await inventarioProductosApi.getCustomProducts(typeParam, brandParam, selectedSource);
         const resObj = result ? (Array.isArray(result) && result.length > 0 ? result[0] : result) : {};
         const productsArray: ProductItem[] = Object.keys(resObj).map(sku => ({
           sku,
@@ -264,9 +272,9 @@ const InventarioProductos = () => {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      {/* Header con título y exportación en la parte superior derecha */}
-      <div className="flex justify-between items-center mb-4">
+    <div className="space-y-6">
+      {/* Header com título e exportação em card */}
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">
             Inventario de Productos {`${sourceName}`}
@@ -276,167 +284,202 @@ const InventarioProductos = () => {
           </p>
         </div>
         {filteredProducts.length > 0 && (
-          <div className="flex gap-4">
-            <button onClick={exportToExcel} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded flex items-center">
+          <div className="flex gap-2">
+            <Button onClick={exportToExcel} size="sm">
               <FileX className="mr-2" size={16} />
               Exportar a Excel
-            </button>
-            <button onClick={exportToCSV} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded flex items-center">
+            </Button>
+            <Button onClick={exportToCSV} variant="outline" size="sm">
               <FileIcon className="mr-2" size={16} />
               Exportar a CSV
-            </button>
+            </Button>
             <PDFDownloadLink
               document={<MyPdfDocument prodData={filteredProducts} allowedSizes={allowedSizes} />}
               fileName="inventario_productos.pdf"
-              className="flex"
             >
-              <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded flex items-center">
+              <Button variant="outline" size="sm">
                 <FileText className="mr-2" size={16} />
                 Exportar a PDF
-              </button>
+              </Button>
             </PDFDownloadLink>
           </div>
         )}
       </div>
-      {/* Filtros y Buscador */}
-      <div className="mb-4 flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="mr-2">Buscar por SKU:</label>
-            <input
-              type="text"
-              placeholder="SKU..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              className="border rounded p-1"
-            />
+
+      {/* Card de filtros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar por SKU</label>
+              <Input
+                type="text"
+                placeholder="SKU..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Source</label>
+              <Select
+                value={selectedSource}
+                onValueChange={(value) => {
+                  setSelectedSource(value);
+                  const foundSource = sources.find(src => src.source_code === value);
+                  setSourceName(foundSource ? foundSource.name : '');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map(src => (
+                    <SelectItem key={src.source_code} value={src.source_code}>
+                      {src.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+                         <div className="space-y-2">
+               <label className="text-sm font-medium">Tipo</label>
+               <Select
+                 value={selectedType}
+                 onValueChange={setSelectedType}
+               >
+                 <SelectTrigger>
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {typeOptions.map(opt => (
+                     <SelectItem key={opt.value} value={opt.value}>
+                       {opt.label}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+
+             <div className="space-y-2">
+               <label className="text-sm font-medium">Marca</label>
+               <Select
+                 value={selectedBrand}
+                 onValueChange={setSelectedBrand}
+               >
+                 <SelectTrigger>
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {brandOptions.map(opt => (
+                     <SelectItem key={opt.value} value={opt.value}>
+                       {opt.label}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
           </div>
-          <div>
-            <label className="mr-2">Source:</label>
-            <select
-              value={selectedSource}
-              onChange={(e) => {
-                const newSource = e.target.value;
-                setSelectedSource(newSource);
-                const foundSource = sources.find(src => src.source_code === newSource);
-                setSourceName(foundSource ? foundSource.name : '');
-              }}
-              className="border rounded p-1"
-            >
-              {sources.map(src => (
-                <option key={src.source_code} value={src.source_code}>
-                  {src.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mr-2">Tipo:</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="border rounded p-1"
-            >
-              <option value="">Todos</option>
-              {typeOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mr-2">Marca:</label>
-            <select
-              value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
-              className="border rounded p-1"
-            >
-              <option value="">Todos</option>
-              {brandOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-      {error && <div className="mb-4 text-red-500">{error}</div>}
-      {/* Card contenedor de la tabla */}
-      <div className="bg-white shadow rounded p-4 mb-4">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imagen</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Especial</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tallas</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              <tr>
-                <td className="px-6 py-4 text-center" colSpan={6}>
-                  Cargando productos...
-                </td>
-              </tr>
-            ) : filteredProducts.length === 0 ? (
-              <tr>
-                <td className="px-6 py-4 text-center" colSpan={6}>
-                  No hay registros
-                </td>
-              </tr>
-            ) : (
-              paginatedProducts.map(({ sku, data }) => {
-                const tallas = Object.entries(data.sizes || {})
-                  .filter(([size]) => allowedSizes.includes(size))
-                  .map(([size, qty]) => `${size}: ${qty}`)
-                  .join(', ');
-                return (
-                  <tr key={sku}>
-                    <td className="px-6 py-4">
-                      <img src={`${UrlImagen}${data.image_url}`} alt={sku} className="h-12 w-12 object-contain" />
-                    </td>
-                    <td className="px-6 py-4">{sku}</td>
-                    <td className="px-6 py-4">{parseInt(data.salable_quantity, 10)}</td>
-                    <td className="px-6 py-4">{formatPrice(data.price)}</td>
-                    <td className="px-6 py-4">
-                      {data.special_price ? formatPrice(data.special_price) : '-'}
-                    </td>
-                    <td className="px-6 py-4">{tallas}</td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-      {/* Paginación centrada con estilo neutro */}
+        </CardContent>
+      </Card>
+
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="text-red-600">{error}</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Card da tabela */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Imagen</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Cantidad</TableHead>
+                <TableHead>Precio</TableHead>
+                <TableHead>Precio Especial</TableHead>
+                <TableHead>Tallas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    Cargando productos...
+                  </TableCell>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    No hay registros
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedProducts.map(({ sku, data }) => {
+                  const tallas = Object.entries(data.sizes || {})
+                    .filter(([size]) => allowedSizes.includes(size))
+                    .map(([size, qty]) => `${size}: ${qty}`)
+                    .join(', ');
+                  return (
+                    <TableRow key={sku}>
+                      <TableCell>
+                        <img 
+                          src={`${UrlImagen}${data.image_url}`} 
+                          alt={sku} 
+                          className="h-12 w-12 object-contain rounded"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{sku}</TableCell>
+                      <TableCell>{parseInt(data.salable_quantity, 10)}</TableCell>
+                      <TableCell>{formatPrice(data.price)}</TableCell>
+                      <TableCell>
+                        {data.special_price ? formatPrice(data.special_price) : '-'}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {tallas}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Paginação */}
       {totalPages > 1 && !loading && (
-        <div className="mt-4 flex justify-center items-center gap-4">
-          <button
+        <div className="flex justify-center items-center gap-4">
+          <Button
+            variant="outline"
             onClick={() => setPage(prev => Math.max(prev - 1, 1))}
             disabled={page === 1}
-            className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
           >
             Anterior
-          </button>
-          <span className="text-sm">
+          </Button>
+          <span className="text-sm text-muted-foreground">
             Página {page} de {totalPages}
           </span>
-          <button
+          <Button
+            variant="outline"
             onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
-            className="border border-gray-300 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-100"
           >
             Siguiente
-          </button>
+          </Button>
         </div>
       )}
     </div>

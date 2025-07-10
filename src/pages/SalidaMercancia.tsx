@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus,Edit,Trash2} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -36,12 +38,19 @@ interface Source {
   };
 }
 
+const estadoOptions = [
+  { label: 'Todos los estados', value: 'all' },
+  { label: 'Nuevo', value: 'n' },
+  { label: 'Procesando', value: 'p' },
+  { label: 'Completado', value: 'c' },
+];
+
 const SalidaMercancia = () => {
   // All hooks are declared unconditionally
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const { loading, getSalidaMercancia, getSources, exportSalidaExcel,deleteSalidaMercancia } = useSalidaMercanciaApi();
+  const { loading, getSalidaMercancia, getSources, exportSalidaExcel, deleteSalidaMercancia } = useSalidaMercanciaApi();
   const [salidas, setSalidas] = useState<any[]>([]);
   const [allSalidas, setAllSalidas] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -205,6 +214,13 @@ const SalidaMercancia = () => {
     }
   };
 
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setFilterEstado("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
   return (
     <div className="space-y-6">
       {loading ? (
@@ -225,52 +241,76 @@ const SalidaMercancia = () => {
               Nueva Salida
             </Button>
           </div>
-          {/* Search and filter controls */}
-          <div className="flex gap-4 items-center mt-4">
-            <input
-              type="text"
-              placeholder="Buscar por consecutivo o responsable"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border rounded p-2"
-            />
-            <select
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)}
-              className="border rounded p-2"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="n">Nuevo</option>
-              <option value="p">Procesando</option>
-              <option value="c">Completado</option>
-            </select>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border rounded p-2"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border rounded p-2"
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchTerm("");
-                setFilterEstado("all");
-                setStartDate("");
-                setEndDate("");
-              }}
-              className="border rounded p-2"
-            >
-              Reiniciar filtros
-            </Button>
-          </div>
+
+          {/* Card de filtros */}
           <Card>
-            <CardContent className="p-6">
+            <CardHeader>
+              <CardTitle>Filtros de búsqueda</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Buscar</label>
+                  <Input
+                    type="text"
+                    placeholder="Consecutivo o responsable"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Estado</label>
+                  <Select
+                    value={filterEstado}
+                    onValueChange={setFilterEstado}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {estadoOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Fecha desde</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Fecha hasta</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <Button
+                    variant="outline"
+                    onClick={handleResetFilters}
+                    className="w-full"
+                  >
+                    Reiniciar filtros
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -292,7 +332,7 @@ const SalidaMercancia = () => {
                         key={salida.salidamercancia_id}
                         className="hover:bg-gray-50"
                       >
-                        <TableCell>{salida.consecutivo}</TableCell>
+                        <TableCell className="font-medium">{salida.consecutivo}</TableCell>
                         <TableCell>{format(new Date(salida.fecha), "dd/MM/yyyy")}</TableCell>
                         <TableCell>{salida.nombre_responsable}</TableCell>  
                         <TableCell>{getSourceName(salida.source)}</TableCell> 
@@ -355,14 +395,14 @@ const SalidaMercancia = () => {
                                 }
                               }}
                             >
-                        <Trash2
-                              className="h-4 w-4 text-red-500"
-                              style={{
-                                opacity: !(salida.estado === "p" || salida.estado === "n") ? 0.5 : 1
-                              }}
-                            />
-                        </Button>
-                      </div>
+                              <Trash2
+                                className="h-4 w-4 text-red-500"
+                                style={{
+                                  opacity: !(salida.estado === "p" || salida.estado === "n") ? 0.5 : 1
+                                }}
+                              />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Button
@@ -379,7 +419,7 @@ const SalidaMercancia = () => {
                               handleExport(salida.salidamercancia_id);
                             }}
                           >
-                            {/* Ícono de exportar */}
+                            {/* Ícone de exportar */}
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className="w-4 h-4"
@@ -397,18 +437,18 @@ const SalidaMercancia = () => {
                           </Button>
                         </TableCell>
                       </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4">
-                            No se encontraron salidas
-                          </TableCell>
-                        </TableRow>
-                      )}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-12">
+                        No se encontraron salidas
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
               {computedTotalPages > 1 && (
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex justify-center pb-4">
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>

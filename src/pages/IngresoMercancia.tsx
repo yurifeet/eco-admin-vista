@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit,Trash2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -36,11 +38,18 @@ interface Source {
   };
 }
 
+const estadoOptions = [
+  { label: 'Todos los estados', value: 'all' },
+  { label: 'Nuevo', value: 'n' },
+  { label: 'Procesando', value: 'p' },
+  { label: 'Completado', value: 'c' },
+];
+
 const IngresoMercancia = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const { loading, getIngresoMercancia, getSources, exportIngresoExcel,deleteIngresoMercancia } = useIngresoMercanciaApi();
+  const { loading, getIngresoMercancia, getSources, exportIngresoExcel, deleteIngresoMercancia } = useIngresoMercanciaApi();
   const [ingresos, setIngresos] = useState<any[]>([]);
   const [allIngresos, setAllIngresos] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -102,7 +111,7 @@ const IngresoMercancia = () => {
     for (let i = 1; i <= totalPages; i++) {
       items.push(
         <PaginationItem key={i}>
-          <PaginationLink onClick={() => handlePageChange(i)} active={i === currentPage}>
+          <PaginationLink onClick={() => handlePageChange(i)} isActive={i === currentPage}>
             {i}
           </PaginationLink>
         </PaginationItem>
@@ -171,6 +180,13 @@ const IngresoMercancia = () => {
     }
   };
 
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setFilterEstado("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -190,52 +206,76 @@ const IngresoMercancia = () => {
           </Button>
         </div>
       </div>
-      {/* Search, estado and date filters */}
-      <div className="flex gap-4 items-center mt-4">
-        <input
-          type="text"
-          placeholder="Buscar por consecutivo o responsable"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border rounded p-2"
-        />
-        <select
-          value={filterEstado}
-          onChange={(e) => setFilterEstado(e.target.value)}
-          className="border rounded p-2"
-        >
-          <option value="all">Todos los estados</option>
-          <option value="n">Nuevo</option>
-          <option value="p">Procesando</option>
-          <option value="c">Completado</option>
-        </select>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border rounded p-2"
-        />
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border rounded p-2"
-        />
-        <Button
-          variant="outline"
-          onClick={() => {
-            setSearchTerm("");
-            setFilterEstado("all");
-            setStartDate("");
-            setEndDate("");
-          }}
-          className="border rounded p-2"
-        >
-          Reiniciar filtros
-        </Button>
-      </div>
+
+      {/* Card de filtros */}
       <Card>
-        <CardContent className="p-6">
+        <CardHeader>
+          <CardTitle>Filtros de búsqueda</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar</label>
+              <Input
+                type="text"
+                placeholder="Consecutivo o responsable"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Estado</label>
+              <Select
+                value={filterEstado}
+                onValueChange={setFilterEstado}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {estadoOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Fecha desde</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Fecha hasta</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                className="w-full"
+              >
+                Reiniciar filtros
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -257,7 +297,7 @@ const IngresoMercancia = () => {
                     key={ingreso.ingresomercancia_id}
                     className="hover:bg-gray-50"
                   >
-                    <TableCell>{ingreso.consecutivo}</TableCell>
+                    <TableCell className="font-medium">{ingreso.consecutivo}</TableCell>
                     <TableCell>{format(new Date(ingreso.fecha), "dd/MM/yyyy")}</TableCell>
                     <TableCell>{ingreso.nombre_responsable}</TableCell>
                     <TableCell>{getSourceName(ingreso.source)}</TableCell>                    
@@ -357,7 +397,7 @@ const IngresoMercancia = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4">
+                  <TableCell colSpan={9} className="text-center py-12">
                     No se encontraron ingresos
                   </TableCell>
                 </TableRow>
@@ -366,7 +406,7 @@ const IngresoMercancia = () => {
           </Table>
           {!(searchTerm || filterEstado !== "all" || startDate || endDate) &&
             totalPages > 1 && (
-              <div className="mt-4 flex justify-center">
+              <div className="mt-4 flex justify-center pb-4">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>

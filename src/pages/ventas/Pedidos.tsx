@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye,Send } from "lucide-react";
+import { Eye, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
@@ -19,6 +29,22 @@ import {
 import * as XLSX from "xlsx";
 import { usePedidosVentasApi } from "@/hooks/usePedidosVentasApi";
 import { translateOrderStatus } from "@/helpers/translateOrderStatus";
+
+const statusOptions = [
+  { value: "Todos", label: "Todos" },
+  { value: "Canceled", label: translateOrderStatus("canceled") },
+  { value: "Closed", label: translateOrderStatus("closed") },
+  { value: "Complete", label: translateOrderStatus("complete") },
+  { value: "Suspected Fraud", label: translateOrderStatus("cuspected fraud") },
+  { value: "holded", label: translateOrderStatus("holded") },
+  { value: "Payment Review", label: translateOrderStatus("payment review") },
+  { value: "Paypal Caceled Reversal", label: translateOrderStatus("paypal caceled reversal") },
+  { value: "Paypal Reserved", label: translateOrderStatus("paypal reserved") },
+  { value: "Pending", label: translateOrderStatus("pending") },
+  { value: "Pending Payment", label: translateOrderStatus("pending payment") },
+  { value: "Pending Paypal", label: translateOrderStatus("pending paypal") },
+  { value: "Processing", label: translateOrderStatus("processing") },
+];
 
 const Pedidos = () => {
   const { getOrderList, getOrderDetail } = usePedidosVentasApi();
@@ -57,9 +83,6 @@ const Pedidos = () => {
   }, [searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
-
-  const colStyle = { width: "calc(100%/8)" };
-  const colStyleFecha = { width: "10%" };
 
   const handleExportOrder = async (orderId: number) => {
     const data = await getOrderDetail(orderId);
@@ -159,7 +182,7 @@ const Pedidos = () => {
     for (let i = startPage; i <= endPage; i++) {
       items.push(
         <PaginationItem key={i}>
-          <PaginationLink onClick={() => handlePageChange(i)} active={i === currentPage}>
+          <PaginationLink onClick={() => handlePageChange(i)} isActive={i === currentPage}>
             {i}
           </PaginationLink>
         </PaginationItem>
@@ -169,95 +192,92 @@ const Pedidos = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold mb-1">Pedidos</h2>
-      <p className="text-muted-foreground mb-4">
-        Gestione los pedidos de ventas
-      </p>
-      {/* Buscador y filtros */}
-      <div className="mb-4 flex flex-col md:flex-row md:items-center md:gap-4">
-        <input
-          type="text"
-          placeholder="Buscar por número de pedido"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="border border-gray-300 px-3 py-2 rounded w-full md:w-1/3"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border border-gray-300 px-3 py-2 rounded w-full md:w-1/4"
-        >
-          {[
-            { value: "Todos", label: "Todos" },
-            { value: "Canceled", label: translateOrderStatus("canceled") },
-            { value: "Closed", label: translateOrderStatus("closed") },
-            { value: "Complete", label: translateOrderStatus("complete") },
-            { value: "Suspected Fraud", label: translateOrderStatus("cuspected fraud") },
-            { value: "holded", label: translateOrderStatus("holded") },
-            { value: "Payment Review", label: translateOrderStatus("payment review") },
-            { value: "Paypal Caceled Reversal", label: translateOrderStatus("paypal caceled reversal") },
-            { value: "Paypal Reserved", label: translateOrderStatus("paypal reserved") },
-            { value: "Pending", label: translateOrderStatus("pending") },
-            { value: "Pending Payment", label: translateOrderStatus("pending payment") },
-            { value: "Pending Paypal", label: translateOrderStatus("pending paypal") },
-            { value: "Processing", label: translateOrderStatus("processing") },
-          ].map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={resetFilters}
-          className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded"
-        >
-          Reiniciar filtros
-        </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Pedidos</h1>
+          <p className="text-muted-foreground">
+            Gestione los pedidos de ventas
+          </p>
+        </div>
       </div>
+      {/* Card de filtros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros de búsqueda</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar por número de pedido</label>
+              <Input
+                type="text"
+                placeholder="Número de pedido"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Estado</label>
+              <Select
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={resetFilters}
+                className="w-full"
+              >
+                Reiniciar filtros
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
-        <div>Cargando pedidos...</div>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Número de pedido
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha compra
-                    </th>
-                    <th style={colStyleFecha} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cliente
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Punto de compra
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Valor total
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                    <th style={colStyle} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Exportar
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order.entity_id}>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                        {order.increment_id}
-                      </td>
-                      <td style={colStyleFecha} className="px-6 py-4 whitespace-nowrap">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número de pedido</TableHead>
+                  <TableHead>Fecha compra</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Punto de compra</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Valor total</TableHead>
+                  <TableHead>Acciones</TableHead>
+                  <TableHead>Exportar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.length > 0 ? (
+                  orders.map((order) => (
+                    <TableRow key={order.entity_id}>
+                      <TableCell className="font-medium">{order.increment_id}</TableCell>
+                      <TableCell>
                         {(() => {
                           const date = new Date(order.created_at);
                           const day = date.getDate().toString().padStart(2, "0");
@@ -265,57 +285,69 @@ const Pedidos = () => {
                           const year = date.getFullYear();
                           return `${day}/${month}/${year}`;
                         })()}
-                      </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         {order.customer_firstname} {order.customer_lastname}
-                      </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                        {order.store_name}
-                      </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
-                        {translateOrderStatus(order.status)}
-                      </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>{order.store_name}</TableCell>
+                      <TableCell>
+                        <div
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                            order.status.toLowerCase() === "complete"
+                              ? "bg-green-100 text-green-800"
+                              : order.status.toLowerCase() === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status.toLowerCase() === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : order.status.toLowerCase() === "canceled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {translateOrderStatus(order.status)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         {"$ " +
                           Number(order.grand_total).toLocaleString("es-CO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
-                      </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          navigate("/dashboard/ventas/PedidoDetalle", {
-                            state: { orderId: order.entity_id },
-                          })
-                        }
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Ver pedido"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        disabled={
-                          ["closed", "canceled", "holded"].includes(
-                            order.status.toLowerCase()
-                          )
-                        }
-                        onClick={() =>
-                          navigate("/dashboard/ventas/PedidoEnvio", {
-                            state: { orderId: order.entity_id },
-                          })
-                        }
-                        className={`text-blue-600 hover:text-blue-900 ${
-                          ["closed", "canceled", "holded"].includes(order.status.toLowerCase())
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                        title="Enviar pedido"
-                      >
-                        <Send className="h-4 w-4" />
-                      </button>
-                    </td>
-                      <td style={colStyle} className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate("/dashboard/ventas/PedidoDetalle", {
+                                state: { orderId: order.entity_id },
+                              })
+                            }
+                            title="Ver pedido"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={
+                              ["closed", "canceled", "holded"].includes(
+                                order.status.toLowerCase()
+                              )
+                            }
+                            onClick={() =>
+                              navigate("/dashboard/ventas/PedidoEnvio", {
+                                state: { orderId: order.entity_id },
+                              })
+                            }
+                            title="Enviar pedido"
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Button
                           variant="outline"
                           size="sm"
@@ -340,13 +372,21 @@ const Pedidos = () => {
                             />
                           </svg>
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-  
-              <div className="mt-4 flex justify-center">
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12">
+                      No se encontraron pedidos
+                    </TableCell>
+                  </TableRow>
+                                )}
+              </TableBody>
+            </Table>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center pb-4">
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
@@ -365,7 +405,7 @@ const Pedidos = () => {
                   </PaginationContent>
                 </Pagination>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}

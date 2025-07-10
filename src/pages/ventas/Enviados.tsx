@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableHeader,
@@ -69,108 +71,143 @@ const Enviados = () => {
     (_, index) => startPage + index
   );
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Enviados</h1>
-      <p className="text-muted-foreground mb-4">
-        Gestione los pedidos enviados
-      </p>
+  const handleResetSearch = () => {
+    setSearchQuery("");
+  };
 
-      {/* Buscador por número de envío */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Buscar por número de envío"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="border border-gray-300 px-3 py-2 rounded w-full md:w-1/3"
-        />
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Enviados</h1>
+          <p className="text-muted-foreground">
+            Gestione los pedidos enviados
+          </p>
+        </div>
       </div>
 
+      {/* Card de filtros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros de búsqueda</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar por número de envío</label>
+              <Input
+                type="text"
+                placeholder="Número de envío"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={handleResetSearch}
+                className="w-full"
+              >
+                Reiniciar filtros
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
-        <p>Cargando envíos...</p>
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          </CardContent>
+        </Card>
       ) : (
         <Card>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table className="min-w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número de envío</TableHead>
-                    <TableHead>Número de pedido</TableHead>
-                    <TableHead>Enviar a nombre de</TableHead>
-                    <TableHead>Fecha orden</TableHead>
-                    <TableHead>Cantidad total</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shipments.length > 0 ? (
-                    shipments.map((shipment) => (
-                      <TableRow key={shipment.entity_id}>
-                        <TableCell>{shipment.increment_id}</TableCell>
-                        <TableCell>{shipment.increment_id_pedido}</TableCell>
-                        <TableCell>
-                          {shipment.customer_firstname}{" "}
-                          {shipment.customer_lastname}
-                        </TableCell>
-                        <TableCell>{shipment.created_at}</TableCell>
-                        <TableCell>{shipment.total_qty}</TableCell>
-                        <TableCell>
-                          <button
-                            onClick={() =>
-                              navigate("/dashboard/ventas/PedidoEnvio", {
-                                state: { orderId: shipment.order_id },
-                              })
-                            }
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Ver envío"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center">
-                        No se encontraron envíos
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número de envío</TableHead>
+                  <TableHead>Número de pedido</TableHead>
+                  <TableHead>Enviar a nombre de</TableHead>
+                  <TableHead>Fecha orden</TableHead>
+                  <TableHead>Cantidad total</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shipments.length > 0 ? (
+                  shipments.map((shipment) => (
+                    <TableRow key={shipment.entity_id}>
+                      <TableCell className="font-medium">{shipment.increment_id}</TableCell>
+                      <TableCell>{shipment.increment_id_pedido}</TableCell>
+                      <TableCell>
+                        {shipment.customer_firstname}{" "}
+                        {shipment.customer_lastname}
+                      </TableCell>
+                      <TableCell>{shipment.created_at}</TableCell>
+                      <TableCell>{shipment.total_qty}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            navigate("/dashboard/ventas/PedidoEnvio", {
+                              state: { orderId: shipment.order_id },
+                            })
+                          }
+                          title="Ver envío"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12">
+                      No se encontraron envíos
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+
             {/* Paginación */}
-            <Pagination>
-              <PaginationContent>
-                <PaginationPrevious
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                >
-                  Anterior
-                </PaginationPrevious>
-                {pageNumbers.map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      active={currentPage === page}
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationNext
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                >
-                  Siguiente
-                </PaginationNext>
-              </PaginationContent>
-            </Pagination>
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center pb-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage((prev) => prev - 1)}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    {pageNumbers.map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage((prev) => prev + 1)}
+                        className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

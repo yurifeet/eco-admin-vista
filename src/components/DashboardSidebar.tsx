@@ -18,6 +18,8 @@ import {
   List,
   FileText,
   Users,
+  ClipboardList,
+  Truck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +141,26 @@ const DashboardSidebar = () => {
             to="/dashboard/inventario-productos"
             icon={<FileText size={18} />}
             label="Inventario Productos"
+            isCollapsed={isCollapsed}
+          />
+        </nav>
+      </div>
+
+      <div className="px-3 pt-4 pb-2">
+        {!isCollapsed && <div className="text-xs text-gray-500 mb-2">VENTAS</div>}
+        <nav className="space-y-1">
+          <SidebarLink
+            to="/dashboard/ventas/pedidos"
+            icon={<ClipboardList size={18} />} // Actualizado el icono
+            label="Pedidos"
+            isCollapsed={isCollapsed}
+          />
+        </nav>
+        <nav className="space-y-1">
+          <SidebarLink
+            to="/dashboard/ventas/enviados"
+            icon={<Truck size={18} />} // Se reemplaza ClipboardList por Truck
+            label="Enviados"
             isCollapsed={isCollapsed}
           />
         </nav>
